@@ -16,7 +16,7 @@ use tracing::{error, info};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 #[group]
-#[commands(ping_cmd)]
+#[commands(ping_cmd, github_cmd)]
 #[description = "Meta commands, idk, nothing too special here"]
 struct Meta;
 

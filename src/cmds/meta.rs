@@ -31,6 +31,14 @@ pub async fn ping_cmd(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
+#[command("github")]
+#[description = "Get a link to the GitHub repository"]
+pub async fn github_cmd(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.channel_id.say(&ctx.http, "https://github.com/Benricheson101/free6").await?;
+
+    Ok(())
+}
+
 #[help]
 #[embed_success_colour = "#a97ccc"]
 #[individual_command_tip = "To learn more about a command, pass its name as an argument"]
