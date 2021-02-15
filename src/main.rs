@@ -1,16 +1,24 @@
+mod cmds;
+
 use std::{collections::HashSet, env, sync::Arc};
 
+use cmds::meta::*;
 use dotenv::dotenv;
 use serenity::{
     async_trait,
     client::{bridge::gateway::ShardManager, EventHandler},
-    framework::StandardFramework,
+    framework::{standard::macros::group, StandardFramework},
     http::Http,
     model::{event::ResumedEvent, gateway::Ready},
     prelude::*,
 };
 use tracing::{error, info};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
+
+#[group]
+#[commands(ping_cmd)]
+#[description = "Meta commands, idk, nothing too special here"]
+struct Meta;
 
 pub struct ShardManagerContainer;
 
@@ -53,7 +61,7 @@ async fn main() {
 
     let http = Http::new_with_token(&token);
 
-    let (owners, _bot_id) = match http.get_current_application_info().await {
+    let (owners, bot_id) = match http.get_current_application_info().await {
         Ok(info) => {
             let mut owners = HashSet::new();
             owners.insert(info.owner.id);
@@ -64,8 +72,15 @@ async fn main() {
         Err(e) => panic!("Could not access application info: {:?}", e),
     };
 
-    let framework =
-        StandardFramework::new().configure(|c| c.owners(owners).prefix("~"));
+    let framework = StandardFramework::new()
+        .configure(|c| {
+            c.owners(owners)
+                .prefix("~")
+                .on_mention(Some(bot_id))
+                .with_whitespace(true)
+        })
+        .help(&HELP_CMD)
+        .group(&META_GROUP);
 
     let mut client = Client::builder(token)
         .event_handler(Handler)
