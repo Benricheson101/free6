@@ -1,6 +1,10 @@
 /// Calculate the user's level from the amout of XP they have
 pub fn xp_to_lvl(xp: i32) -> i32 {
-    (-50 + ((20 * xp + 500) as f32).sqrt().ceil() as i32) / 10
+    if xp < 100 {
+        0
+    } else {
+        (-50 + ((20 * xp + 500) as f32).sqrt().ceil() as i32) / 10
+    }
 }
 
 /// Caclulate the amount of XP each level costs

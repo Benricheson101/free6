@@ -1,25 +1,10 @@
-use std::collections::HashSet;
-
 use serenity::{
-    framework::standard::{
-        help_commands,
-        macros::{command, help},
-        Args,
-        CommandGroup,
-        CommandResult,
-        HelpOptions,
-    },
+    framework::standard::{macros::command, Args, CommandResult},
     model::prelude::*,
     prelude::*,
-    utils::MessageBuilder,
 };
-use tokio::time::Instant;
-use tracing::error;
 
-use crate::util::{
-    db::Database,
-    xp::{xp_to_lvl, xp_to_next_lvl},
-};
+use crate::util::{db::Database, xp::xp_to_lvl};
 
 #[command("set_xp")]
 #[owners_only]

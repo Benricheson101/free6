@@ -1,9 +1,12 @@
 mod cmds;
+mod hooks;
 pub mod models;
 pub mod schema;
 pub mod util;
 
-use std::{collections::HashSet, env, sync::Arc};
+use std::{collections::HashSet, env, sync::Arc, time::Duration};
+
+use lru_time_cache::LruCache;
 
 #[macro_use]
 extern crate diesel;
@@ -15,12 +18,16 @@ use serenity::{
     client::{bridge::gateway::ShardManager, EventHandler},
     framework::{standard::macros::group, StandardFramework},
     http::Http,
-    model::{event::ResumedEvent, gateway::Ready},
+    model::prelude::*,
     prelude::*,
 };
 use tracing::{error, info};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 use util::db::Database;
+
+pub const MIN_MESSAGE_XP: i32 = 15;
+pub const MAX_MESSAGE_XP: i32 = 25;
+pub const XP_TIMEOUT_SECS: u64 = 0;
 
 #[group("Meta")]
 #[commands(
@@ -39,6 +46,7 @@ struct MetaCmds;
 struct XpCmds;
 
 pub struct ShardManagerContainer;
+pub struct MessageXPTimeoutCache;
 
 impl TypeMapKey for ShardManagerContainer {
     type Value = Arc<Mutex<ShardManager>>;
@@ -46,6 +54,10 @@ impl TypeMapKey for ShardManagerContainer {
 
 impl TypeMapKey for Database {
     type Value = Arc<Mutex<Database>>;
+}
+
+impl TypeMapKey for MessageXPTimeoutCache {
+    type Value = Arc<Mutex<LruCache<(UserId, GuildId), i32>>>;
 }
 
 struct Handler;
@@ -109,7 +121,8 @@ async fn main() {
         })
         .help(&HELP_CMD)
         .group(&METACMDS_GROUP)
-        .group(&XPCMDS_GROUP);
+        .group(&XPCMDS_GROUP)
+        .normal_message(hooks::normal_message);
 
     let mut client = Client::builder(token)
         .event_handler(Handler)
@@ -118,11 +131,18 @@ async fn main() {
         .expect("Err creating client");
 
     let db = Arc::new(Mutex::new(Database::new(&database_url)));
+    let msg_xp_timeout_cache = Arc::new(Mutex::new(LruCache::<
+        (UserId, GuildId),
+        i32,
+    >::with_expiry_duration(
+        Duration::from_secs(XP_TIMEOUT_SECS),
+    )));
 
     {
         let mut data = client.data.write().await;
         data.insert::<ShardManagerContainer>(client.shard_manager.clone());
         data.insert::<Database>(db.clone());
+        data.insert::<MessageXPTimeoutCache>(msg_xp_timeout_cache.clone());
     }
 
     let shard_manager = client.shard_manager.clone();

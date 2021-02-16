@@ -1,14 +1,12 @@
 use diesel::{
     prelude::*,
-    query_dsl::methods::{FindDsl, SelectDsl},
+    r2d2::{ConnectionManager, Pool},
     result::Error as DieselError,
-    Connection,
     PgConnection,
     QueryDsl,
     RunQueryDsl,
 };
 use serenity::model::id::{GuildId, UserId};
-use tracing::info;
 
 use crate::{
     models::user::{NewUser, User},
@@ -16,15 +14,16 @@ use crate::{
 };
 
 pub struct Database {
-    conn: PgConnection,
+    conn: Pool<ConnectionManager<PgConnection>>,
 }
 
 impl Database {
     pub fn new(database_url: &str) -> Self {
-        let conn = PgConnection::establish(database_url)
-            .expect("Error connecting to the database");
+        let manager = ConnectionManager::<PgConnection>::new(database_url);
 
-        Self { conn }
+        Self {
+            conn: Pool::builder().build(manager).expect("Error creating pool"),
+        }
     }
 
     pub fn create_guild_user(
@@ -39,7 +38,7 @@ impl Database {
 
         diesel::insert_into(users::table)
             .values(&new_user)
-            .get_result(&self.conn)
+            .get_result(&self.conn.get().unwrap())
     }
 
     pub fn get_guild_user(
@@ -50,7 +49,7 @@ impl Database {
         users::table
             .filter(users::guild_id.eq(guild_id.0 as i64))
             .filter(users::user_id.eq(user_id.0 as i64))
-            .get_result(&self.conn)
+            .get_result(&self.conn.get().unwrap())
     }
 
     pub fn get_guild_users(
@@ -59,7 +58,7 @@ impl Database {
     ) -> Result<Vec<User>, DieselError> {
         users::table
             .filter(users::guild_id.eq(guild_id.0 as i64))
-            .get_results(&self.conn)
+            .get_results(&self.conn.get().unwrap())
     }
 
     pub fn set_guild_user_xp(
@@ -74,6 +73,21 @@ impl Database {
                 .filter(users::user_id.eq(user_id.0 as i64)),
         )
         .set(users::xp.eq(xp))
-        .get_result(&self.conn)
+        .get_result(&self.conn.get().unwrap())
+    }
+
+    pub fn add_guild_user_xp(
+        &self,
+        user_id: UserId,
+        guild_id: GuildId,
+        xp: i32,
+    ) -> Result<User, DieselError> {
+        diesel::update(
+            users::table
+                .filter(users::guild_id.eq(guild_id.0 as i64))
+                .filter(users::user_id.eq(user_id.0 as i64)),
+        )
+        .set(users::xp.eq(users::xp + xp))
+        .get_result(&self.conn.get().unwrap())
     }
 }
