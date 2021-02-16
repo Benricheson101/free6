@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use diesel::result::{DatabaseErrorKind, Error as DieselError};
 use serenity::{
     framework::standard::{
         help_commands,
@@ -16,8 +17,6 @@ use serenity::{
 use tokio::time::Instant;
 use tracing::error;
 
-use diesel::result::DatabaseErrorKind;
-use diesel::result::Error as DieselError;
 use crate::util::db::Database;
 
 #[command("ping")]
@@ -95,8 +94,10 @@ pub async fn create_user_cmd(ctx: &Context, msg: &Message) -> CommandResult {
         Err(e) => {
             match &e {
                 DieselError::DatabaseError(_kind, err) => {
-                    msg.channel_id.say(&ctx.http, format!("{:?}", *err)).await?;
-                }
+                    msg.channel_id
+                        .say(&ctx.http, format!("{:?}", *err))
+                        .await?;
+                },
                 _ => (),
             }
 

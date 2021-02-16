@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_imports)]
-
 mod cmds;
 pub mod models;
 pub mod schema;
@@ -130,24 +128,13 @@ async fn main() {
     let shard_manager = client.shard_manager.clone();
 
     tokio::spawn(async move {
-        println!("[ctrl+c] before await");
         tokio::signal::ctrl_c()
             .await
             .expect("Could not register ctrl+c handler");
-        println!("[ctrl+c] before shutdown");
         shard_manager.lock().await.shutdown_all().await;
-
-        println!("[ctrl+c] after shutdown");
     });
 
     if let Err(e) = client.start_autosharded().await {
         error!("Client error: {:?}", e);
     }
-
-    // let db = Database::new(&database_url);
-
-    // // db.create_user(255834596766253057, 579466138992508928);
-    // db.get_guild_user(255834596766253057, 579466138992508928)?;
-
-    // Ok(())
 }
