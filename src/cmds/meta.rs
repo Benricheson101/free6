@@ -11,8 +11,14 @@ use serenity::{
     },
     model::prelude::*,
     prelude::*,
+    utils::MessageBuilder,
 };
 use tokio::time::Instant;
+use tracing::error;
+
+use diesel::result::DatabaseErrorKind;
+use diesel::result::Error as DieselError;
+use crate::util::db::Database;
 
 #[command("ping")]
 #[description = "Pong! See how long it takes the bot to respond"]
@@ -34,7 +40,97 @@ pub async fn ping_cmd(ctx: &Context, msg: &Message) -> CommandResult {
 #[command("github")]
 #[description = "Get a link to the GitHub repository"]
 pub async fn github_cmd(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.channel_id.say(&ctx.http, "https://github.com/Benricheson101/free6").await?;
+    msg.channel_id
+        .say(&ctx.http, "https://github.com/Benricheson101/free6")
+        .await?;
+
+    Ok(())
+}
+
+#[command("get_user")]
+#[owners_only]
+pub async fn get_user_cmd(ctx: &Context, msg: &Message) -> CommandResult {
+    let data = ctx.data.read().await;
+    let db = data
+        .get::<Database>()
+        .expect("Expected `Database` in TypeMap")
+        .lock()
+        .await;
+
+    let found = db.get_guild_user(msg.author.id, msg.guild_id.unwrap()).ok();
+
+    match found {
+        Some(d) => {
+            msg.channel_id
+                .say(&ctx.http, format!("```rs\n{:#?}```", d))
+                .await?;
+        },
+        None => {
+            msg.channel_id
+                .say(&ctx.http, "You are not in the database")
+                .await?;
+        },
+    }
+
+    Ok(())
+}
+
+#[command("create_user")]
+pub async fn create_user_cmd(ctx: &Context, msg: &Message) -> CommandResult {
+    let data = ctx.data.read().await;
+    let db = data
+        .get::<Database>()
+        .expect("Expected `Database` in TypeMap")
+        .lock()
+        .await;
+
+    let created = db.create_guild_user(msg.author.id, msg.guild_id.unwrap());
+
+    match created {
+        Ok(u) => {
+            msg.channel_id
+                .say(&ctx.http, format!("```rs\n{:#?}```", u))
+                .await?;
+        },
+        Err(e) => {
+            match &e {
+                DieselError::DatabaseError(_kind, err) => {
+                    msg.channel_id.say(&ctx.http, format!("{:?}", *err)).await?;
+                }
+                _ => (),
+            }
+
+            error!("{:#?}", e);
+        },
+    }
+
+    Ok(())
+}
+
+#[command("get_all_users")]
+#[owners_only]
+pub async fn get_all_users_cmd(ctx: &Context, msg: &Message) -> CommandResult {
+    let data = ctx.data.read().await;
+    let db = data
+        .get::<Database>()
+        .expect("Expected `Database` in TypeMap")
+        .lock()
+        .await;
+
+    let found = db.get_guild_users(msg.guild_id.unwrap());
+
+    match found {
+        Ok(guilds) => {
+            msg.channel_id
+                .say(&ctx.http, format!("```rs\n{:#?}```", guilds))
+                .await?;
+        },
+        Err(e) => {
+            msg.channel_id
+                .say(&ctx.http, format!("Error!\n```rs\n{:#?}```", e))
+                .await?;
+        },
+    }
 
     Ok(())
 }
