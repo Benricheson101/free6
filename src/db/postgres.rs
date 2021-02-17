@@ -7,7 +7,7 @@ use diesel::{
     RunQueryDsl,
 };
 use serenity::model::id::{GuildId, UserId};
-use tracing::info;
+
 
 use super::redis::RedisCache;
 use crate::{
