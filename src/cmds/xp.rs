@@ -4,7 +4,7 @@ use serenity::{
     prelude::*,
 };
 
-use crate::util::{db::Database, xp::xp_to_lvl};
+use crate::{db::postgres::Database, util::xp::xp_to_lvl};
 
 #[command("set_xp")]
 #[owners_only]
@@ -51,6 +51,47 @@ pub async fn rank_cmd(ctx: &Context, msg: &Message) -> CommandResult {
     };
 
     msg.channel_id.say(&ctx.http, &m).await?;
+
+    Ok(())
+}
+
+#[command("leaderboard")]
+#[aliases("lb", "top")]
+#[owners_only]
+pub async fn leaderboard_cmd(ctx: &Context, msg: &Message) -> CommandResult {
+    let data = ctx.data.read().await;
+    let db = data
+        .get::<Database>()
+        .expect("Expected `Database` in TypeMap")
+        .lock()
+        .await;
+
+    match db.top_n_guild_user_xp(msg.guild_id.unwrap(), 10) {
+        Ok(users) => {
+            // TODO: figure out cache?
+            // TODO: create row on chat
+
+            let formatted = users
+                .iter()
+                .enumerate()
+                .map(|(i, u)| {
+                    format!("{}. <@!{}> ({})", i + 1, u.user_id, u.xp)
+                })
+                .collect::<Vec<String>>();
+
+            msg.channel_id
+                .send_message(&ctx.http, |x| {
+                    x.allowed_mentions(|am| am.empty_parse())
+                        .content(formatted.join("\n"))
+                })
+                .await?;
+        },
+        Err(_) => {
+            msg.channel_id
+                .say(&ctx.http, "Error getting users from database.")
+                .await?;
+        },
+    }
 
     Ok(())
 }

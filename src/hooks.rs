@@ -6,7 +6,7 @@ use serenity::{
 };
 
 use crate::{
-    util::db::Database,
+    db::postgres::Database,
     MessageXPTimeoutCache,
     MAX_MESSAGE_XP,
     MIN_MESSAGE_XP,
@@ -38,11 +38,12 @@ pub async fn normal_message(ctx: &Context, msg: &Message) {
         .await;
 
     let xp_to_grant: i32 =
-        rand::thread_rng().gen_range(MIN_MESSAGE_XP..MAX_MESSAGE_XP);
+        rand::thread_rng().gen_range(MIN_MESSAGE_XP..=MAX_MESSAGE_XP);
 
     if let Ok(saved) =
         db.add_guild_user_xp(msg.author.id, msg.guild_id.unwrap(), xp_to_grant)
     {
+        println!("Saved: {:#?}", saved);
         let prev_amt = saved.xp - xp_to_grant;
         let curr_amt = saved.xp;
 

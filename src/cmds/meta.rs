@@ -16,7 +16,7 @@ use serenity::{
 use tokio::time::Instant;
 use tracing::error;
 
-use crate::util::db::Database;
+use crate::db::postgres::Database;
 
 #[command("ping")]
 #[description = "Pong! See how long it takes the bot to respond"]
@@ -124,6 +124,43 @@ pub async fn get_all_users_cmd(ctx: &Context, msg: &Message) -> CommandResult {
             msg.channel_id
                 .say(&ctx.http, format!("Error!\n```rs\n{:#?}```", e))
                 .await?;
+        },
+    }
+
+    Ok(())
+}
+
+#[command("user_cache")]
+#[owners_only]
+pub async fn get_user_cache_cmd(
+    ctx: &Context,
+    _msg: &Message,
+) -> CommandResult {
+    let user_cache = ctx.cache.users().await;
+    println!("{:#?}", user_cache);
+    println!("Cache = {}", user_cache.len());
+
+    Ok(())
+}
+
+#[command("create_guild")]
+#[owners_only]
+pub async fn create_guild_cmd(ctx: &Context, msg: &Message) -> CommandResult {
+    let data = ctx.data.read().await;
+    let db = data
+        .get::<Database>()
+        .expect("Expected `Database` in TypeMap")
+        .lock()
+        .await;
+
+    match db.create_guild(msg.guild_id.unwrap()) {
+        Ok(guild) => {
+            msg.channel_id
+                .say(&ctx.http, format!("```{:#?}```", guild))
+                .await?;
+        },
+        Err(e) => {
+            msg.channel_id.say(&ctx.http, format!("{:#?}", e)).await?;
         },
     }
 

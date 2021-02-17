@@ -15,4 +15,5 @@ pub struct User {
 pub struct NewUser {
     pub user_id: i64,
     pub guild_id: i64,
+    pub xp: i32,
 }

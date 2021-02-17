@@ -1,4 +1,5 @@
 mod cmds;
+mod db;
 mod hooks;
 pub mod models;
 pub mod schema;
@@ -6,28 +7,30 @@ pub mod util;
 
 use std::{collections::HashSet, env, sync::Arc, time::Duration};
 
-use lru_time_cache::LruCache;
-
 #[macro_use]
 extern crate diesel;
 
 use cmds::{meta::*, xp::*};
+use db::{postgres::Database, redis::RedisCache};
 use dotenv::dotenv;
+use lru_time_cache::LruCache;
 use serenity::{
     async_trait,
-    client::{bridge::gateway::ShardManager, EventHandler},
+    client::{
+        bridge::gateway::{GatewayIntents, ShardManager},
+        EventHandler,
+    },
     framework::{standard::macros::group, StandardFramework},
     http::Http,
     model::prelude::*,
     prelude::*,
 };
 use tracing::{error, info};
-use tracing_subscriber::{EnvFilter, FmtSubscriber};
-use util::db::Database;
+use tracing_subscriber::EnvFilter;
 
 pub const MIN_MESSAGE_XP: i32 = 15;
 pub const MAX_MESSAGE_XP: i32 = 25;
-pub const XP_TIMEOUT_SECS: u64 = 0;
+pub const XP_TIMEOUT_SECS: u64 = 60;
 
 #[group("Meta")]
 #[commands(
@@ -35,7 +38,10 @@ pub const XP_TIMEOUT_SECS: u64 = 0;
     github_cmd,
     get_user_cmd,
     create_user_cmd,
-    get_all_users_cmd
+    get_all_users_cmd,
+    leaderboard_cmd,
+    get_user_cache_cmd,
+    create_guild_cmd
 )]
 #[description = "Meta commands, idk, nothing too special here"]
 struct MetaCmds;
@@ -83,7 +89,9 @@ impl EventHandler for Handler {
 async fn main() {
     dotenv().expect("Failed to load .env file");
 
-    let subscriber = FmtSubscriber::builder()
+    let subscriber = tracing_subscriber::fmt()
+        .pretty()
+        .with_target(false)
         .with_env_filter(EnvFilter::from_default_env())
         .finish();
 
@@ -96,7 +104,9 @@ async fn main() {
     );
 
     let database_url = env::var("DATABASE_URL")
-        .expect("Expected a database url in the environment");
+        .expect("Expected `DATABASE_URL` in the environment");
+    let redis_url =
+        env::var("REDIS_URL").expect("Expected `REDIS_URL` in the environment");
 
     let http = Http::new_with_token(&token);
 
@@ -127,10 +137,17 @@ async fn main() {
     let mut client = Client::builder(token)
         .event_handler(Handler)
         .framework(framework)
+        .intents(
+            GatewayIntents::GUILDS
+                | GatewayIntents::GUILD_MEMBERS
+                | GatewayIntents::GUILD_MESSAGES
+                | GatewayIntents::GUILD_PRESENCES, // ugh
+        )
         .await
         .expect("Err creating client");
 
-    let db = Arc::new(Mutex::new(Database::new(&database_url)));
+    let redis = RedisCache::new(&redis_url);
+    let db = Arc::new(Mutex::new(Database::new(&database_url, redis)));
     let msg_xp_timeout_cache = Arc::new(Mutex::new(LruCache::<
         (UserId, GuildId),
         i32,
