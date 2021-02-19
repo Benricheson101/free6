@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use fluent_templates::Loader;
 use diesel::result::Error as DieselError;
 use serenity::{
     framework::standard::{
@@ -15,8 +16,9 @@ use serenity::{
 };
 use tokio::time::Instant;
 use tracing::error;
+use fluent_templates::loader::langid;
 
-use crate::db::postgres::Database;
+use crate::{LOCALES, args, db::postgres::Database};
 
 #[command("ping")]
 #[description = "Pong! See how long it takes the bot to respond"]
@@ -167,6 +169,43 @@ pub async fn create_guild_cmd(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
+#[command("prefix")]
+#[owners_only]
+pub async fn prefix_cmd(
+    ctx: &Context,
+    msg: &Message,
+    args: Args,
+) -> CommandResult {
+    let data = ctx.data.read().await;
+    let db = data
+        .get::<Database>()
+        .expect("Expected `Database` in TypeMap")
+        .lock()
+        .await;
+
+    if args.is_empty() {
+        let prefix = db.get_guild_prefix(msg.guild_id.unwrap()).unwrap();
+
+        msg.channel_id
+            .say(&ctx.http, format!("My prefix is: `{}`", prefix))
+            .await?;
+
+        return Ok(());
+    }
+
+    let new_prefix = args.rest();
+
+    let new = db
+        .set_guild_prefix(msg.guild_id.unwrap(), new_prefix.to_string())
+        .unwrap();
+
+    msg.channel_id
+        .say(&ctx.http, format!("New prefix = {}", &new.prefix))
+        .await?;
+
+    Ok(())
+}
+
 #[help]
 #[embed_success_colour = "#a97ccc"]
 #[individual_command_tip = "To learn more about a command, pass its name as an argument"]
@@ -189,5 +228,18 @@ async fn help_cmd(
     )
     .await;
 
+    Ok(())
+}
+
+#[command("get_string_from_fluent")]
+#[owners_only]
+pub async fn fluent_test_cmd(ctx: &Context, msg: &Message) -> CommandResult {
+    let args = args! {
+        "name" => msg.author.name.to_owned(),
+    };
+
+    let thing = LOCALES.lookup_with_args(&langid!("en"), "greet", &args);
+
+    msg.channel_id.say(&ctx.http, thing).await?;
     Ok(())
 }

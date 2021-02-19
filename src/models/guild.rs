@@ -14,4 +14,5 @@ pub struct Guild {
 #[table_name = "guilds"]
 pub struct NewGuild {
     pub guild_id: i64,
+    pub prefix: String,
 }

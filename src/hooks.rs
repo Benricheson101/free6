@@ -14,7 +14,9 @@ use crate::{
 
 #[hook]
 pub async fn normal_message(ctx: &Context, msg: &Message) {
-    println!("Received normal message: {}", &msg.content);
+    if msg.author.bot {
+        return;
+    }
 
     let data = ctx.data.read().await;
 
@@ -27,7 +29,6 @@ pub async fn normal_message(ctx: &Context, msg: &Message) {
     let cache_key = (msg.author.id, msg.guild_id.unwrap());
 
     if timeout_cache.peek(&cache_key).is_some() {
-        println!("{} is on cooldown", msg.author.name);
         return;
     }
 

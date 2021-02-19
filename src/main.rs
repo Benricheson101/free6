@@ -13,6 +13,7 @@ extern crate diesel;
 use cmds::{meta::*, xp::*};
 use db::{postgres::Database, redis::RedisCache};
 use dotenv::dotenv;
+use fluent_templates::static_loader;
 use lru_time_cache::LruCache;
 use serenity::{
     async_trait,
@@ -32,6 +33,29 @@ pub const MIN_MESSAGE_XP: i32 = 15;
 pub const MAX_MESSAGE_XP: i32 = 25;
 pub const XP_TIMEOUT_SECS: u64 = 60;
 
+static_loader! {
+    pub static LOCALES = {
+        locales: "./lang",
+        fallback_language: "en",
+
+        customise: |bundle| bundle.set_use_isolating(false),
+    };
+}
+
+
+#[macro_export]
+macro_rules! args {
+    ( $($key:expr => $val:expr),* $(,)? ) => {
+        {
+            let mut map = std::collections::HashMap::new();
+            $(
+                map.insert($key, $val.into());
+            )*
+            map
+        }
+    }
+}
+
 #[group("Meta")]
 #[commands(
     ping_cmd,
@@ -41,7 +65,9 @@ pub const XP_TIMEOUT_SECS: u64 = 60;
     get_all_users_cmd,
     leaderboard_cmd,
     get_user_cache_cmd,
-    create_guild_cmd
+    create_guild_cmd,
+    prefix_cmd,
+    fluent_test_cmd,
 )]
 #[description = "Meta commands, idk, nothing too special here"]
 struct MetaCmds;
@@ -124,7 +150,18 @@ async fn main() {
     let framework = StandardFramework::new()
         .configure(|c| {
             c.owners(owners)
-                .prefix("~")
+                .dynamic_prefix(|ctx, msg| {
+                    Box::pin(async move {
+                        let type_map = ctx.data.read().await;
+                        let db = type_map
+                            .get::<Database>()
+                            .expect("Expected Database in TypeMap")
+                            .lock()
+                            .await;
+
+                        db.get_guild_prefix(msg.guild_id.unwrap()).ok()
+                    })
+                })
                 .on_mention(Some(bot_id))
                 .with_whitespace(true)
                 .allow_dm(false)

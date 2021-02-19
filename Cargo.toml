@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 diesel = { version = "1.4.5", features = ["postgres", "r2d2"] }
 dotenv = "0.15.0"
+fluent-templates = "0.6.1"
 lru_time_cache = "0.11.7"
 r2d2_redis = "0.13.0"
 rand = "0.8.3"
@@ -18,3 +19,4 @@ serenity = "0.10.2"
 tokio = { version = "1.2.0", features = ["macros", "signal", "rt-multi-thread"] }
 tracing = "0.1.23"
 tracing-subscriber = "0.2.15"
+unic-langid = { version = "0.9.0", features = ["macros"] }

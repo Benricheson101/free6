@@ -1,0 +1,1 @@
+bot-name = Free6

@@ -12,6 +12,7 @@ table! {
         user_id -> Int8,
         guild_id -> Int8,
         xp -> Int4,
+        blocked -> Bool,
     }
 }
 

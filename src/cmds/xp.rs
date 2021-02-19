@@ -57,7 +57,6 @@ pub async fn rank_cmd(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("leaderboard")]
 #[aliases("lb", "top")]
-#[owners_only]
 pub async fn leaderboard_cmd(ctx: &Context, msg: &Message) -> CommandResult {
     let data = ctx.data.read().await;
     let db = data
