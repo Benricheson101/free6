@@ -28,9 +28,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
         cluster.some_events(EventTypeFlags::from(EventType::ShardPayload));
 
     let cluster_spawn = cluster.clone();
+    let cluster_term = cluster.clone();
 
     tokio::spawn(async move {
         cluster_spawn.up().await;
+    });
+
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Could not register ctrl-c handler");
+        cluster_term.down();
     });
 
     while let Some((_shard_id, event)) = events.next().await {
