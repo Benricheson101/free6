@@ -9,5 +9,5 @@ redis
 
 ### run the thing
 1. start the gateway `cargo run --bin gateway --release`
-2. start slash commands `yarn compile && node build/src/index.js`
+2. start slash commands `yarn build:slash_cmds && yarn run:slash_cmds`
 3. start leveling `cargo run --bin leveling --release`

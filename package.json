@@ -1,0 +1,12 @@
+{
+  "name": "free6",
+  "repository": "git@github.com:Benricheson101/free6.git",
+  "author": "Benjamin Richeson <benricheson101@gmail.com>",
+  "workspaces": [
+    "slash_cmds"
+  ],
+  "scripts": {
+    "build:slash_cmds":"cd slash_cmds && yarn compile && cd ..",
+    "run:slash_cmds": "node slash_cmds/build/src/index.js"
+  }
+}
