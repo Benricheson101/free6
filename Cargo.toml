@@ -1,0 +1,13 @@
+[workspace]
+members = [
+  "gateway",
+  "leveling",
+]
+
+# [[bin]]
+# name = "gateway"
+# path = "gateway"
+
+# [[bin]]
+# name = "leveling"
+# path = "leveling"
