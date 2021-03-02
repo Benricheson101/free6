@@ -77,6 +77,12 @@ async fn handle_event(
                 }
             },
 
+            "GUILD_DELETE" => {
+                if let Some(guild_id) = event.d["id"].as_str() {
+                    conn.hdel("guilds", guild_id).await?;
+                }
+            },
+
             "MESSAGE_CREATE" if !&event.d["webhook_id"].is_null() => {
                 if let Some(user_id) = event.d["author"]["id"].as_str() {
                     conn.hset(
@@ -100,7 +106,11 @@ async fn publish(
     event_name: &String,
     data: &String,
 ) -> Result<(), Box<dyn Error>> {
-    conn.publish(format!("gateway:{}", event_name), data)
+    conn.publish(format!("gateway:{}", &event_name), data)
         .await?;
+
+    // for stat tracking
+    conn.hincr("events", &event_name.to_string(), 1).await?;
+
     Ok(())
 }

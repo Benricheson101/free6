@@ -1,13 +1,15 @@
+import {inspect} from 'util';
 import {createClient} from 'redis';
 import {Interaction} from 'slashy';
 
+const sub = createClient();
 const client = createClient();
 
-client.on('subscribe', channel => {
+sub.on('subscribe', channel => {
   console.log('Subscribed to channel:', channel);
 });
 
-client.on('message', async (channel, msg) => {
+sub.on('message', async (channel, msg) => {
   if (channel !== 'gateway:INTERACTION_CREATE') {
     return;
   }
@@ -22,7 +24,25 @@ client.on('message', async (channel, msg) => {
       await i.edit(`:ping_pong: Pong! Message sent in ${after - before} ms`);
       break;
     }
+
+    case 'stats': {
+      try {
+        const stats = await new Promise((resolve, reject) => {
+          client.hgetall('events', (err, data) =>
+            err ? reject(err) : resolve(data)
+          );
+        });
+
+        await i.send(
+          'have some stats :nerd: ```json\n' + inspect(stats) + '```'
+        );
+      } catch (err) {
+        await i.send(':x: There was an error :|');
+      }
+
+      break;
+    }
   }
 });
 
-client.subscribe('gateway:INTERACTION_CREATE');
+sub.subscribe('gateway:INTERACTION_CREATE');
