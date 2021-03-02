@@ -6,8 +6,12 @@ rust + cargo
 nodejs
 postgres
 redis
+just
 
 ### run the thing
-1. start the gateway `cargo run --bin gateway --release`
-2. start slash commands `yarn build:slash_cmds && yarn run:slash_cmds`
-3. start leveling `cargo run --bin leveling --release`
+(ill probably do all this with docker eventually but for now u have to do it manually)
+note: u must have [just](https://github.com/casey/just) installed
+1. `just release`
+2. start the gateway `./release/gateway`
+3. start slash commands `./release/slash_cmds`
+4. start leveling `./release/leveling`
