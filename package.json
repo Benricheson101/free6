@@ -1,12 +1,28 @@
 {
-  "name": "free6",
-  "repository": "git@github.com:Benricheson101/free6.git",
-  "author": "Benjamin Richeson <benricheson101@gmail.com>",
-  "workspaces": [
-    "slash_cmds"
-  ],
+  "name": "slash_cmds",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^14.11.2",
+    "@types/redis": "^2.8.28",
+    "gts": "^3.1.0",
+    "pkg": "^4.4.9",
+    "typescript": "^4.2.2"
+  },
   "scripts": {
-    "build:slash_cmds":"cd slash_cmds && yarn compile && cd ..",
-    "run:slash_cmds": "node slash_cmds/build/src/index.js"
+    "lint": "gts lint",
+    "clean": "gts clean",
+    "compile": "tsc",
+    "fix": "gts fix",
+    "pretest": "yarn --silent run compile",
+    "test": "echo tests go here:tm:",
+    "posttest": "yarn --silent run lint",
+    "release:slash_cmds": "pkg build/slash_cmds/src/index.js -t node14-linux -o ${RELEASE_DIR:-'release'}/slash_cmds"
+  },
+  "dependencies": {
+    "redis": "^3.0.2",
+    "slashy": "^1.0.7"
   }
 }

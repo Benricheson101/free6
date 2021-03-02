@@ -7,3 +7,9 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+sqlx = { version = "0.5.1", features = ["postgres", "runtime-tokio-rustls"] }
+tokio = { version = "1.2.0", features = ["rt-multi-thread", "macros"] }
+
+[[bin]]
+name = "main"
+path = "src/main.rs"

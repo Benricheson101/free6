@@ -1,9 +1,16 @@
 import {createClient} from 'redis';
 import {Interaction} from 'slashy';
 
-const sub = createClient();
+const client = createClient();
 
-sub.on('message', async (_channel, msg) => {
+client.on('subscribe', channel => {
+  console.log('Subscribed to channel:', channel);
+});
+
+client.on('message', async (channel, msg) => {
+  if (channel !== 'gateway:INTERACTION_CREATE') {
+    return;
+  }
   const i = new Interaction(JSON.parse(msg), '641392996025106432');
 
   switch (i.data.name) {
@@ -18,4 +25,4 @@ sub.on('message', async (_channel, msg) => {
   }
 });
 
-sub.subscribe('gateway:INTERACTION_CREATE');
+client.subscribe('gateway:INTERACTION_CREATE');
